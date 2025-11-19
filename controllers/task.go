@@ -65,32 +65,42 @@ func UpdateTask(c *gin.Context) {
 		return
 	}
 
+	updates := make(map[string]interface{})
+
 	// Update Title if present
 	if title, ok := input["title"].(string); ok {
-		task.Title = title
+		updates["title"] = title
+		task.Title = title // Update struct for response
 	}
 
 	// Update Completed if present
 	if completed, ok := input["completed"].(bool); ok {
 		if completed != task.Completed {
-			task.Completed = completed
+			updates["completed"] = completed
+			task.Completed = completed // Update struct for response
+			
 			if completed {
 				now := time.Now().UnixMilli()
-				task.CompletedAt = &now
+				updates["completed_at"] = now
+				task.CompletedAt = &now // Update struct for response
 			} else {
-				task.CompletedAt = nil
+				updates["completed_at"] = nil
+				task.CompletedAt = nil // Update struct for response
 			}
 		}
 	}
 
 	// Update TimeSpent if present
 	if timeSpent, ok := input["time_spent"].(float64); ok {
-		task.TimeSpent = int(timeSpent)
+		updates["time_spent"] = int(timeSpent)
+		task.TimeSpent = int(timeSpent) // Update struct for response
 	}
 	
-	if err := database.DB.Save(&task).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	if len(updates) > 0 {
+		if err := database.DB.Model(&task).Updates(updates).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, task)
