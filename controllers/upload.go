@@ -26,7 +26,7 @@ func UploadFile(c *gin.Context) {
 
 	// Generate unique filename
 	filename := uuid.New().String() + ext
-	uploadPath := filepath.Join("uploads", filename)
+	uploadPath := filepath.Join("/front/build/uploads", filename)
 
 	// Save file
 	if err := c.SaveUploadedFile(file, uploadPath); err != nil {
