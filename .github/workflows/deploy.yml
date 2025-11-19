@@ -1,0 +1,63 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build app in CentOS 7 container with Go 1.23
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/src -w /src centos:7 bash -c "
+            # 备份并替换yum源为阿里云镜像
+            mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
+            curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+            yum clean all
+            yum makecache
+
+            # 安装必要工具
+            yum install -y curl tar
+
+            # 下载并安装Go 1.23.4
+            curl -LO https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
+            tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz
+
+            export PATH=/usr/local/go/bin:$PATH
+            go version
+
+            # 编译程序
+            go build -o main main.go
+          "
+
+      - name: Install sshpass and rsync
+        run: sudo apt-get update && sudo apt-get install -y sshpass rsync
+
+      - name: Clean /data directory on server
+        run: |
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "
+            sudo rm -rf /data/* /data/.[!.]* || true
+          "
+
+      - name: Sync built binary to server
+        run: |
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "mkdir -p /data"
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz main ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/data/
+
+      - name: Stop old app process on server
+        run: |
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "
+            sudo pkill -9 main || true
+          "
+
+      - name: Start app on server
+        run: |
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "
+            sudo env DB_DSN='${{ secrets.DB_DSN }}' nohup /data/main > /logs/main.log 2>&1 &
+          "
