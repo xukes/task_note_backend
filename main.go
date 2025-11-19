@@ -35,12 +35,12 @@ func main() {
 
 		c.Next()
 	})
-
-	r.POST("/login", controllers.Login)
-	r.POST("/register", controllers.Register)
+	au := r.Group("/api")
+	au.POST("/login", controllers.Login)
+	au.POST("/register", controllers.Register)
 
 	// Serve static files from uploads directory
-	r.Static("/uploads", "./uploads")
+	au.Static("/uploads", "./uploads")
 
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware())
