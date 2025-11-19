@@ -33,7 +33,7 @@ func UploadFile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
 		return
 	}
-
+	_ = os.Chmod(uploadPath, 0644)
 	// Return public URL
 	// Assuming server runs on localhost:8080. In production, this should be configured.
 	url := fmt.Sprintf("http://8.152.101.46:8099/uploads/%s", filename)
