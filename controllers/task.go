@@ -78,6 +78,7 @@ func UpdateTask(c *gin.Context) {
 	// Only update allowed fields
 	task.Title = input.Title
 	task.Completed = input.Completed
+	task.TimeSpent = input.TimeSpent
 	
 	if err := database.DB.Save(&task).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
