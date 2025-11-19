@@ -95,6 +95,12 @@ func UpdateTask(c *gin.Context) {
 		updates["time_spent"] = int(timeSpent)
 		task.TimeSpent = int(timeSpent) // Update struct for response
 	}
+
+	// Update TimeUnit if present
+	if timeUnit, ok := input["time_unit"].(string); ok {
+		updates["time_unit"] = timeUnit
+		task.TimeUnit = timeUnit // Update struct for response
+	}
 	
 	if len(updates) > 0 {
 		if err := database.DB.Model(&task).Updates(updates).Error; err != nil {

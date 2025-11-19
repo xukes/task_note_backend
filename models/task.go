@@ -9,5 +9,6 @@ type Task struct {
 	CreatedAt   int64  `json:"created_at"`           // Changed to int64 (timestamp in milliseconds)
 	CompletedAt *int64 `json:"completed_at"`         // Pointer to allow null
 	TimeSpent   int    `json:"time_spent" gorm:"default:0"` // Time spent in minutes
+	TimeUnit    string `json:"time_unit" gorm:"default:'minute'"` // Unit: minute, hour, day, week, month
 	Notes       []Note `json:"notes" gorm:"foreignKey:TaskID"`
 }
