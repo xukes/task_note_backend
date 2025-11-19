@@ -59,26 +59,34 @@ func UpdateTask(c *gin.Context) {
 		return
 	}
 
-	var input models.Task
+	var input map[string]interface{}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Handle CompletedAt logic
-	if input.Completed != task.Completed {
-		if input.Completed {
-			now := time.Now().UnixMilli()
-			task.CompletedAt = &now
-		} else {
-			task.CompletedAt = nil
+	// Update Title if present
+	if title, ok := input["title"].(string); ok {
+		task.Title = title
+	}
+
+	// Update Completed if present
+	if completed, ok := input["completed"].(bool); ok {
+		if completed != task.Completed {
+			task.Completed = completed
+			if completed {
+				now := time.Now().UnixMilli()
+				task.CompletedAt = &now
+			} else {
+				task.CompletedAt = nil
+			}
 		}
 	}
 
-	// Only update allowed fields
-	task.Title = input.Title
-	task.Completed = input.Completed
-	task.TimeSpent = input.TimeSpent
+	// Update TimeSpent if present
+	if timeSpent, ok := input["time_spent"].(float64); ok {
+		task.TimeSpent = int(timeSpent)
+	}
 	
 	if err := database.DB.Save(&task).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
