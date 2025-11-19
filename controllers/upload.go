@@ -31,6 +31,11 @@ func UploadFile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
 		return
 	}
+	// Force directory permissions to 755 in case they were messed up by previous code
+	// MkdirAll doesn't change permissions if directory already exists
+	if err := os.Chmod(uploadDir, 0755); err != nil {
+		fmt.Printf("Failed to chmod directory: %v\n", err)
+	}
 
 	// Generate unique filename
 	filename := uuid.New().String() + ext
