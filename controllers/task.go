@@ -40,6 +40,10 @@ func CreateTask(c *gin.Context) {
 
 	input.UserID = userId
 	input.CreatedAt = time.Now().UnixMilli() // Save as milliseconds timestamp
+	// If TaskTime wasn't provided, default it to CreatedAt for backward compatibility
+	if input.TaskTime == 0 {
+		input.TaskTime = input.CreatedAt
+	}
 
 	if err := database.DB.Create(&input).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -100,6 +104,12 @@ func UpdateTask(c *gin.Context) {
 	if timeUnit, ok := input["time_unit"].(string); ok {
 		updates["time_unit"] = timeUnit
 		task.TimeUnit = timeUnit // Update struct for response
+	}
+
+	// Update TaskTime if present
+	if taskTime, ok := input["task_time"].(float64); ok {
+		updates["task_time"] = int64(taskTime)
+		task.TaskTime = int64(taskTime)
 	}
 	
 	if len(updates) > 0 {
