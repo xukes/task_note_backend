@@ -25,16 +25,28 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
+	// Ensure directory exists with correct permissions (755)
+	uploadDir := "/front/build/uploads"
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+		return
+	}
+
 	// Generate unique filename
 	filename := uuid.New().String() + ext
-	uploadPath := filepath.Join("/front/build/uploads", filename)
+	uploadPath := filepath.Join(uploadDir, filename)
 
 	// Save file
 	if err := c.SaveUploadedFile(file, uploadPath); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
 		return
 	}
-	_ = os.Chmod(uploadPath, 777)
+
+	// Change file permissions to 644 so nginx (and others) can read it
+	if err := os.Chmod(uploadPath, 0644); err != nil {
+		fmt.Printf("Failed to chmod file: %v\n", err)
+		// Don't return error here, as file is saved
+	}
 	// Return public URL
 	// Assuming server runs on localhost:8080. In production, this should be configured.
 	url := fmt.Sprintf("http://8.152.101.46:8099/uploads/%s", filename)
