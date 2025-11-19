@@ -31,11 +31,6 @@ func UploadFile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
 		return
 	}
-	// Force directory permissions to 755 in case they were messed up by previous code
-	// MkdirAll doesn't change permissions if directory already exists
-	if err := os.Chmod(uploadDir, 0755); err != nil {
-		fmt.Printf("Failed to chmod directory: %v\n", err)
-	}
 
 	// Generate unique filename
 	filename := uuid.New().String() + ext
@@ -52,6 +47,12 @@ func UploadFile(c *gin.Context) {
 		fmt.Printf("Failed to chmod file: %v\n", err)
 		// Don't return error here, as file is saved
 	}
+	// Force directory permissions to 755 in case they were messed up by previous code
+	// MkdirAll doesn't change permissions if directory already exists
+	if err := os.Chmod(uploadDir, 0755); err != nil {
+		fmt.Printf("Failed to chmod directory: %v\n", err)
+	}
+
 	// Return public URL
 	// Assuming server runs on localhost:8080. In production, this should be configured.
 	url := fmt.Sprintf("http://8.152.101.46:8099/uploads/%s", filename)
