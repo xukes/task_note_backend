@@ -19,8 +19,29 @@ func GetTasks(c *gin.Context) {
 	endDateStr := c.Query("end_date")
 
 	if startDateStr != "" && endDateStr != "" {
-		// Assuming frontend sends timestamps as strings
-		query = query.Where("created_at BETWEEN ? AND ?", startDateStr, endDateStr)
+		// Filter by task_time instead of created_at
+		query = query.Where("task_time BETWEEN ? AND ?", startDateStr, endDateStr)
+	}
+
+	if err := query.Find(&tasks).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, tasks)
+}
+
+func GetTaskStats(c *gin.Context) {
+	userId := c.MustGet("user_id").(uint)
+	var tasks []models.Task
+
+	// Only select necessary fields for stats
+	query := database.DB.Select("id, task_time, completed").Where("user_id = ?", userId)
+
+	startDateStr := c.Query("start_date")
+	endDateStr := c.Query("end_date")
+
+	if startDateStr != "" && endDateStr != "" {
+		query = query.Where("task_time BETWEEN ? AND ?", startDateStr, endDateStr)
 	}
 
 	if err := query.Find(&tasks).Error; err != nil {

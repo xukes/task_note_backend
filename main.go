@@ -48,6 +48,7 @@ func main() {
 		protected.POST("/upload", controllers.UploadFile)
 
 		protected.GET("/tasks", controllers.GetTasks)
+		protected.GET("/tasks/stats", controllers.GetTaskStats)
 		protected.POST("/tasks", controllers.CreateTask)
 		protected.PUT("/tasks/:id", controllers.UpdateTask)
 		protected.PATCH("/tasks/:id/toggle", controllers.ToggleTask)
