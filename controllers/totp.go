@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"sync"
+	"time"
 	"task_note_backend/database"
 	"task_note_backend/models"
 
@@ -34,7 +35,7 @@ func GenerateTOTP(c *gin.Context) {
 		return
 	}
 
-	// Store secret in memory temporarily instead of database
+	// 将密钥暂时存储在内存中，而不是数据库
 	tempTOTPSecrets.Store(userId, key.Secret())
 
 	c.JSON(http.StatusOK, gin.H{
@@ -51,15 +52,15 @@ func VerifyAndBindTOTP(c *gin.Context) {
 		return
 	}
 
-	// Check if there is a pending secret in memory
+	// 检查内存中是否有待处理的密钥
 	secretInterface, ok := tempTOTPSecrets.Load(userId)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No pending TOTP setup found or expired. Please generate a new QR code."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "未找到待处理的 TOTP 设置或已过期。请重新生成二维码。"})
 		return
 	}
 	secret := secretInterface.(string)
 
-	valid, _ := totp.ValidateCustom(input.Token, secret, totp.ValidateOpts{
+	valid, _ := totp.ValidateCustom(input.Token, secret, time.Now(), totp.ValidateOpts{
 		Period:    30,
 		Skew:      2,
 		Digits:    otp.DigitsSix,
@@ -76,12 +77,12 @@ func VerifyAndBindTOTP(c *gin.Context) {
 		return
 	}
 
-	// Save to database only after verification
+	// 仅在验证通过后保存到数据库
 	user.TOTPSecret = secret
 	user.TOTPEnabled = true
 	database.DB.Save(&user)
 
-	// Clear temporary secret
+	// 清除临时密钥
 	tempTOTPSecrets.Delete(userId)
 
 	c.JSON(http.StatusOK, gin.H{"message": "TOTP enabled successfully"})

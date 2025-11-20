@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"time"
 	"task_note_backend/database"
 	"task_note_backend/models"
 	"task_note_backend/utils"
@@ -36,7 +37,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Check if 2FA is enabled
+	// 检查是否启用了双重认证 (2FA)
 	if user.TOTPEnabled {
 		if input.TOTPToken == "" {
 			c.JSON(http.StatusOK, gin.H{
@@ -46,7 +47,7 @@ func Login(c *gin.Context) {
 			return
 		}
 
-		valid, _ := totp.ValidateCustom(input.TOTPToken, user.TOTPSecret, totp.ValidateOpts{
+		valid, _ := totp.ValidateCustom(input.TOTPToken, user.TOTPSecret, time.Now(), totp.ValidateOpts{
 			Period:    30,
 			Skew:      2,
 			Digits:    otp.DigitsSix,
