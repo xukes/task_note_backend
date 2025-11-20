@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"net/http"
-	"time"
 	"task_note_backend/database"
 	"task_note_backend/models"
 	"task_note_backend/utils"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pquerna/otp"
@@ -42,6 +42,8 @@ func Login(c *gin.Context) {
 		if input.TOTPToken == "" {
 			c.JSON(http.StatusOK, gin.H{
 				"require_2fa": true,
+				"token":       "",
+				"username":    "",
 				"message":     "Please provide 2FA token",
 			})
 			return
@@ -65,7 +67,12 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token, "username": user.Username})
+	c.JSON(http.StatusOK, gin.H{
+		"require_2fa": false,
+		"token":       token,
+		"username":    user.Username,
+		"message":     "Login successful",
+	})
 }
 
 func Register(c *gin.Context) {
