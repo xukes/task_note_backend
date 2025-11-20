@@ -11,7 +11,7 @@ import (
 
 func GetTasks(c *gin.Context) {
 	userId := c.MustGet("user_id").(uint)
-	var tasks []models.Task
+	tasks := []models.Task{}
 
 	query := database.DB.Preload("Notes").Where("user_id = ?", userId)
 
@@ -41,7 +41,7 @@ func GetTaskStats(c *gin.Context) {
 	startDateStr := c.Query("start_date")
 	endDateStr := c.Query("end_date")
 
-	var stats []DailyTaskStat
+	stats := []DailyTaskStat{}
 
 	query := `
 		SELECT
@@ -113,7 +113,7 @@ func UpdateTask(c *gin.Context) {
 		if completed != task.Completed {
 			updates["completed"] = completed
 			task.Completed = completed // Update struct for response
-			
+
 			if completed {
 				now := time.Now().UnixMilli()
 				updates["completed_at"] = now
@@ -142,7 +142,7 @@ func UpdateTask(c *gin.Context) {
 		updates["task_time"] = int64(taskTime)
 		task.TaskTime = int64(taskTime)
 	}
-	
+
 	if len(updates) > 0 {
 		if err := database.DB.Model(&task).Updates(updates).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
