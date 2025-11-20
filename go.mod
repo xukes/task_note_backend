@@ -10,6 +10,7 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.3.0
+	github.com/h2non/bimg v1.1.9
 	github.com/pquerna/otp v1.5.0
 	golang.org/x/crypto v0.44.0
 	gorm.io/gorm v1.31.1

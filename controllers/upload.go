@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	os "os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/h2non/bimg"
 )
 
 func UploadFile(c *gin.Context) {
@@ -32,14 +34,53 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
-	// Generate unique filename
-	filename := uuid.New().String() + ext
-	uploadPath := filepath.Join(uploadDir, filename)
+	// Generate unique filename base
+	filenameBase := uuid.New().String()
+	var filename string
+	var uploadPath string
 
-	// Save file
-	if err := c.SaveUploadedFile(file, uploadPath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
-		return
+	// Check if file size > 500KB (500 * 1024 bytes)
+	if file.Size > 500*1024 {
+		// Open the uploaded file
+		src, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open uploaded file"})
+			return
+		}
+		defer src.Close()
+
+		// Read file content
+		buffer, err := io.ReadAll(src)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read uploaded file"})
+			return
+		}
+
+		// Convert to WebP using bimg
+		newImage, err := bimg.NewImage(buffer).Convert(bimg.WEBP)
+		if err != nil {
+			fmt.Printf("Image compression failed: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to compress image"})
+			return
+		}
+
+		filename = filenameBase + ".webp"
+		uploadPath = filepath.Join(uploadDir, filename)
+
+		// Save compressed file
+		if err := bimg.Write(uploadPath, newImage); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save compressed file"})
+			return
+		}
+	} else {
+		// Save original file
+		filename = filenameBase + ext
+		uploadPath = filepath.Join(uploadDir, filename)
+
+		if err := c.SaveUploadedFile(file, uploadPath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+			return
+		}
 	}
 
 	// Change file permissions to 644 so nginx (and others) can read it
