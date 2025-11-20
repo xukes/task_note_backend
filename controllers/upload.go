@@ -2,15 +2,15 @@ package controllers
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	os "os"
 	"path/filepath"
 	"strings"
 
+	"github.com/chai2010/webp"
+	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/h2non/bimg"
 )
 
 func UploadFile(c *gin.Context) {
@@ -28,7 +28,7 @@ func UploadFile(c *gin.Context) {
 	}
 
 	// Ensure directory exists with correct permissions (755)
-	uploadDir := "/front/build/uploads"
+	uploadDir := "./uploads"
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
 		return
@@ -49,28 +49,43 @@ func UploadFile(c *gin.Context) {
 		}
 		defer src.Close()
 
-		// Read file content
-		buffer, err := io.ReadAll(src)
+		// Decode image
+		img, err := imaging.Decode(src)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read uploaded file"})
-			return
-		}
+			// If decoding fails, fall back to saving original
+			fmt.Printf("Image decode failed (saving original): %v\n", err)
+			filename = filenameBase + ext
+			uploadPath = filepath.Join(uploadDir, filename)
+			if err := c.SaveUploadedFile(file, uploadPath); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+				return
+			}
+		} else {
+			// Compress: Resize if too large (optional)
+			// Limit width to 1920px
+			if img.Bounds().Dx() > 1920 {
+				img = imaging.Resize(img, 1920, 0, imaging.Lanczos)
+			}
 
-		// Convert to WebP using bimg
-		newImage, err := bimg.NewImage(buffer).Convert(bimg.WEBP)
-		if err != nil {
-			fmt.Printf("Image compression failed: %v\n", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to compress image"})
-			return
-		}
+			// Save as WebP
+			filename = filenameBase + ".webp"
+			uploadPath = filepath.Join(uploadDir, filename)
 
-		filename = filenameBase + ".webp"
-		uploadPath = filepath.Join(uploadDir, filename)
+			// Create output file
+			out, err := os.Create(uploadPath)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create output file"})
+				return
+			}
+			defer out.Close()
 
-		// Save compressed file
-		if err := bimg.Write(uploadPath, newImage); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save compressed file"})
-			return
+			// Encode as WebP with quality 75
+			err = webp.Encode(out, img, &webp.Options{Lossless: false, Quality: 75})
+			if err != nil {
+				fmt.Printf("WebP encode failed: %v\n", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save compressed file"})
+				return
+			}
 		}
 	} else {
 		// Save original file
@@ -86,16 +101,13 @@ func UploadFile(c *gin.Context) {
 	// Change file permissions to 644 so nginx (and others) can read it
 	if err := os.Chmod(uploadPath, 0644); err != nil {
 		fmt.Printf("Failed to chmod file: %v\n", err)
-		// Don't return error here, as file is saved
 	}
-	// Force directory permissions to 755 in case they were messed up by previous code
-	// MkdirAll doesn't change permissions if directory already exists
+	// Force directory permissions to 755
 	if err := os.Chmod(uploadDir, 0755); err != nil {
 		fmt.Printf("Failed to chmod directory: %v\n", err)
 	}
 
 	// Return public URL
-	// Assuming server runs on localhost:8080. In production, this should be configured.
 	url := fmt.Sprintf("http://8.152.101.46:8099/uploads/%s", filename)
 	c.JSON(http.StatusOK, gin.H{"url": url})
 }
