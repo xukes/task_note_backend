@@ -23,6 +23,8 @@ func GetTasks(c *gin.Context) {
 		query = query.Where("task_time BETWEEN ? AND ?", startDateStr, endDateStr)
 	}
 
+	query = query.Order("sort_order asc")
+
 	if err := query.Find(&tasks).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -74,6 +76,25 @@ func CreateTask(c *gin.Context) {
 	// If TaskTime wasn't provided, default it to CreatedAt for backward compatibility
 	if input.TaskTime == 0 {
 		input.TaskTime = input.CreatedAt
+	}
+
+	// Calculate SortOrder
+	loc := time.FixedZone("CST", 8*3600) // Use China Standard Time
+	t := time.UnixMilli(input.TaskTime).In(loc)
+	y, m, d := t.Date()
+	startOfDay := time.Date(y, m, d, 0, 0, 0, 0, loc).UnixMilli()
+	endOfDay := time.Date(y, m, d, 23, 59, 59, 999, loc).UnixMilli()
+
+	var lastTask models.Task
+	// Find the task with the maximum sort_order for the same day
+	result := database.DB.Where("user_id = ? AND task_time BETWEEN ? AND ?", userId, startOfDay, endOfDay).Order("sort_order desc").First(&lastTask)
+
+	if result.Error != nil {
+		// No tasks found for this day, start with 1
+		input.SortOrder = 1
+	} else {
+		// Add 100 to the max sort_order
+		input.SortOrder = lastTask.SortOrder + 100
 	}
 
 	if err := database.DB.Create(&input).Error; err != nil {
@@ -141,6 +162,12 @@ func UpdateTask(c *gin.Context) {
 	if taskTime, ok := input["task_time"].(float64); ok {
 		updates["task_time"] = int64(taskTime)
 		task.TaskTime = int64(taskTime)
+	}
+
+	// Update SortOrder if present
+	if sortOrder, ok := input["sort_order"].(float64); ok {
+		updates["sort_order"] = sortOrder
+		task.SortOrder = sortOrder
 	}
 
 	if len(updates) > 0 {
