@@ -57,6 +57,10 @@ func main() {
 		protected.POST("/notes", controllers.CreateNote)
 		protected.PUT("/notes/:id", controllers.UpdateNote)
 		protected.DELETE("/notes/:id", controllers.DeleteNote)
+
+		protected.POST("/auth/totp/generate", controllers.GenerateTOTP)
+		protected.POST("/auth/totp/verify", controllers.VerifyAndBindTOTP)
+		protected.GET("/auth/totp/status", controllers.GetTOTPStatus)
 	}
 
 	r.Run(":8080")

@@ -7,12 +7,15 @@ import (
 	"task_note_backend/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type LoginInput struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username  string `json:"username" binding:"required"`
+	Password  string `json:"password" binding:"required"`
+	TOTPToken string `json:"totp_token"`
 }
 
 func Login(c *gin.Context) {
@@ -31,6 +34,28 @@ func Login(c *gin.Context) {
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid username or password"})
 		return
+	}
+
+	// Check if 2FA is enabled
+	if user.TOTPEnabled {
+		if input.TOTPToken == "" {
+			c.JSON(http.StatusOK, gin.H{
+				"require_2fa": true,
+				"message":     "Please provide 2FA token",
+			})
+			return
+		}
+
+		valid, _ := totp.ValidateCustom(input.TOTPToken, user.TOTPSecret, totp.ValidateOpts{
+			Period:    30,
+			Skew:      2,
+			Digits:    otp.DigitsSix,
+			Algorithm: otp.AlgorithmSHA1,
+		})
+		if !valid {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 2FA token"})
+			return
+		}
 	}
 
 	token, err := utils.GenerateToken(user.ID)
