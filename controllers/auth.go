@@ -19,6 +19,12 @@ type LoginInput struct {
 	TOTPToken string `json:"totp_token"`
 }
 
+type ResetPasswordInput struct {
+	Username    string `json:"username" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required"`
+	TOTPToken   string `json:"totp_token" binding:"required"`
+}
+
 func Login(c *gin.Context) {
 	var input LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -112,4 +118,49 @@ func CreateUser(username, password string) error {
 	}
 	user := models.User{Username: username, Password: string(hashedPassword)}
 	return database.DB.Create(&user).Error
+}
+
+func ResetPassword(c *gin.Context) {
+	var input ResetPasswordInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var user models.User
+	if err := database.DB.Where("username = ?", input.Username).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	if !user.TOTPEnabled {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "2FA is not enabled for this account. Cannot reset password via TOTP."})
+		return
+	}
+
+	valid, _ := totp.ValidateCustom(input.TOTPToken, user.TOTPSecret, time.Now(), totp.ValidateOpts{
+		Period:    30,
+		Skew:      2,
+		Digits:    otp.DigitsSix,
+		Algorithm: otp.AlgorithmSHA1,
+	})
+
+	if !valid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 2FA token"})
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
+
+	user.Password = string(hashedPassword)
+	if err := database.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
 }

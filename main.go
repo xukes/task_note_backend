@@ -38,6 +38,7 @@ func main() {
 	au := r.Group("/api")
 	au.POST("/login", controllers.Login)
 	au.POST("/register", controllers.Register)
+	au.POST("/auth/reset-password", controllers.ResetPassword)
 
 	// Serve static files from uploads directory
 	au.Static("/uploads", "./uploads")
