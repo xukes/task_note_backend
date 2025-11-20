@@ -23,7 +23,7 @@ jobs:
             yum makecache
 
             # 安装必要工具
-            yum install -y curl tar
+            yum install -y curl tar gcc
 
             # 下载并安装Go 1.23.4
             curl -LO https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
