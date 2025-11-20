@@ -103,7 +103,7 @@ func CreateTask(c *gin.Context) {
 		return
 	}
 
-	search.IndexTask(input)
+	go search.IndexTask(input)
 
 	c.JSON(http.StatusOK, input)
 }
@@ -180,10 +180,12 @@ func UpdateTask(c *gin.Context) {
 		}
 	}
 
-	// Re-index task
-	var updatedTask models.Task
-	database.DB.Preload("Notes").First(&updatedTask, task.ID)
-	search.IndexTask(updatedTask)
+	// Re-index task asynchronously
+	go func(taskId uint) {
+		var updatedTask models.Task
+		database.DB.Preload("Notes").First(&updatedTask, taskId)
+		search.IndexTask(updatedTask)
+	}(task.ID)
 
 	c.JSON(http.StatusOK, task)
 }
@@ -203,7 +205,7 @@ func DeleteTask(c *gin.Context) {
 		return
 	}
 
-	search.DeleteTask(task.ID)
+	go search.DeleteTask(task.ID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Task deleted"})
 }
@@ -233,10 +235,12 @@ func ToggleTask(c *gin.Context) {
 		return
 	}
 
-	// Re-index task
-	var updatedTask models.Task
-	database.DB.Preload("Notes").First(&updatedTask, task.ID)
-	search.IndexTask(updatedTask)
+	// Re-index task asynchronously
+	go func(taskId uint) {
+		var updatedTask models.Task
+		database.DB.Preload("Notes").First(&updatedTask, taskId)
+		search.IndexTask(updatedTask)
+	}(task.ID)
 
 	c.JSON(http.StatusOK, task)
 }

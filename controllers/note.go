@@ -31,10 +31,12 @@ func CreateNote(c *gin.Context) {
 		return
 	}
 
-	// Re-index parent task
-	var parentTask models.Task
-	database.DB.Preload("Notes").First(&parentTask, input.TaskID)
-	search.IndexTask(parentTask)
+	// Re-index parent task asynchronously
+	go func(taskId uint) {
+		var parentTask models.Task
+		database.DB.Preload("Notes").First(&parentTask, taskId)
+		search.IndexTask(parentTask)
+	}(input.TaskID)
 
 	c.JSON(http.StatusOK, input)
 }
@@ -71,10 +73,12 @@ func UpdateNote(c *gin.Context) {
 		return
 	}
 
-	// Re-index parent task
-	var parentTask models.Task
-	database.DB.Preload("Notes").First(&parentTask, note.TaskID)
-	search.IndexTask(parentTask)
+	// Re-index parent task asynchronously
+	go func(taskId uint) {
+		var parentTask models.Task
+		database.DB.Preload("Notes").First(&parentTask, taskId)
+		search.IndexTask(parentTask)
+	}(note.TaskID)
 
 	c.JSON(http.StatusOK, note)
 }
@@ -105,10 +109,12 @@ func DeleteNote(c *gin.Context) {
 		return
 	}
 
-	// Re-index parent task
-	var parentTask models.Task
-	database.DB.Preload("Notes").First(&parentTask, note.TaskID)
-	search.IndexTask(parentTask)
+	// Re-index parent task asynchronously
+	go func(taskId uint) {
+		var parentTask models.Task
+		database.DB.Preload("Notes").First(&parentTask, taskId)
+		search.IndexTask(parentTask)
+	}(note.TaskID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Note deleted"})
 }
