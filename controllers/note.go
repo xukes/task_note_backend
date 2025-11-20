@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"task_note_backend/database"
 	"task_note_backend/models"
+	"task_note_backend/search"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,6 +30,11 @@ func CreateNote(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Re-index parent task
+	var parentTask models.Task
+	database.DB.Preload("Notes").First(&parentTask, input.TaskID)
+	search.IndexTask(parentTask)
 
 	c.JSON(http.StatusOK, input)
 }
@@ -65,6 +71,11 @@ func UpdateNote(c *gin.Context) {
 		return
 	}
 
+	// Re-index parent task
+	var parentTask models.Task
+	database.DB.Preload("Notes").First(&parentTask, note.TaskID)
+	search.IndexTask(parentTask)
+
 	c.JSON(http.StatusOK, note)
 }
 
@@ -93,6 +104,11 @@ func DeleteNote(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Re-index parent task
+	var parentTask models.Task
+	database.DB.Preload("Notes").First(&parentTask, note.TaskID)
+	search.IndexTask(parentTask)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Note deleted"})
 }

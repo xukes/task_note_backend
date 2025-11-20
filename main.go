@@ -5,12 +5,14 @@ import (
 	"task_note_backend/database"
 	"task_note_backend/middleware"
 	"task_note_backend/models"
+	"task_note_backend/search"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	database.ConnectDatabase()
+	search.Init()
 
 	// Seed default user
 	var count int64
@@ -47,6 +49,7 @@ func main() {
 	protected.Use(middleware.AuthMiddleware())
 	{
 		protected.POST("/upload", controllers.UploadFile)
+		protected.GET("/search", controllers.SearchTasks)
 
 		protected.GET("/tasks", controllers.GetTasks)
 		protected.GET("/tasks/stats", controllers.GetTaskStats)
