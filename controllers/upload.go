@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/chai2010/webp"
 	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -28,7 +27,7 @@ func UploadFile(c *gin.Context) {
 	}
 
 	// Ensure directory exists with correct permissions (755)
-	uploadDir := "./uploads"
+	uploadDir := "/front/build/uploads"
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
 		return
@@ -67,22 +66,13 @@ func UploadFile(c *gin.Context) {
 				img = imaging.Resize(img, 1920, 0, imaging.Lanczos)
 			}
 
-			// Save as WebP
-			filename = filenameBase + ".webp"
+			// Save as JPEG
+			filename = filenameBase + ".jpg"
 			uploadPath = filepath.Join(uploadDir, filename)
 
-			// Create output file
-			out, err := os.Create(uploadPath)
+			// Save with quality 75
+			err = imaging.Save(img, uploadPath, imaging.JPEGQuality(75))
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create output file"})
-				return
-			}
-			defer out.Close()
-
-			// Encode as WebP with quality 75
-			err = webp.Encode(out, img, &webp.Options{Lossless: false, Quality: 75})
-			if err != nil {
-				fmt.Printf("WebP encode failed: %v\n", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save compressed file"})
 				return
 			}
