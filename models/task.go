@@ -2,7 +2,7 @@ package models
 
 
 type Task struct {
-	ID          string `gorm:"primaryKey" json:"id"`
+	ID          uint   `gorm:"primaryKey" json:"id"`
 	UserID      uint   `gorm:"index;not null" json:"user_id"`
 	Title       string `gorm:"not null" json:"title"`
 	Completed   bool   `gorm:"default:false" json:"completed"`

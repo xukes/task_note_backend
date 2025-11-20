@@ -30,25 +30,35 @@ func GetTasks(c *gin.Context) {
 	c.JSON(http.StatusOK, tasks)
 }
 
+type DailyTaskStat struct {
+	Date             string `json:"date"`
+	TotalCount       int    `json:"total_count"`
+	UnCompletedCount int    `json:"un_completed_count"`
+}
+
 func GetTaskStats(c *gin.Context) {
 	userId := c.MustGet("user_id").(uint)
-	var tasks []models.Task
-
-	// Only select necessary fields for stats
-	query := database.DB.Select("id, task_time, completed").Where("user_id = ?", userId)
-
 	startDateStr := c.Query("start_date")
 	endDateStr := c.Query("end_date")
 
-	if startDateStr != "" && endDateStr != "" {
-		query = query.Where("task_time BETWEEN ? AND ?", startDateStr, endDateStr)
-	}
+	var stats []DailyTaskStat
 
-	if err := query.Find(&tasks).Error; err != nil {
+	query := `
+		SELECT
+		  date(task_time/1000, 'unixepoch', '+8 hours') AS date,
+		  COUNT(*) AS total_count,
+		  SUM(CASE WHEN completed = 0 THEN 1 ELSE 0 END) AS un_completed_count
+		FROM tasks
+		WHERE user_id = ? AND task_time BETWEEN ? AND ?
+		GROUP BY date
+		ORDER BY date
+	`
+
+	if err := database.DB.Raw(query, userId, startDateStr, endDateStr).Scan(&stats).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, tasks)
+	c.JSON(http.StatusOK, stats)
 }
 
 func CreateTask(c *gin.Context) {
