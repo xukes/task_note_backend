@@ -2,11 +2,10 @@ module task_note_backend
 
 go 1.24.0
 
-toolchain go1.24.10
+toolchain go1.24.7
 
 require (
 	github.com/blevesearch/bleve/v2 v2.4.1
-	github.com/chai2010/webp v1.4.0
 	github.com/disintegration/imaging v1.6.2
 	github.com/gin-gonic/gin v1.11.0
 	github.com/glebarez/sqlite v1.11.0
