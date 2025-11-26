@@ -36,3 +36,4 @@ Thumbs.db
 uploads/
 task_index.bleve/
 tasks.db-shm
+note_index.bleve/

@@ -50,6 +50,7 @@ func main() {
 	{
 		protected.POST("/upload", controllers.UploadFile)
 		protected.GET("/search", controllers.SearchTasks)
+		protected.GET("/search/notes", controllers.SearchNotes)
 
 		protected.GET("/tasks", controllers.GetTasks)
 		protected.GET("/tasks/stats", controllers.GetTaskStats)
@@ -59,6 +60,7 @@ func main() {
 		protected.DELETE("/tasks/:id", controllers.DeleteTask)
 
 		protected.POST("/notes", controllers.CreateNote)
+		protected.GET("/notes", controllers.GetNotes)
 		protected.PUT("/notes/:id", controllers.UpdateNote)
 		protected.DELETE("/notes/:id", controllers.DeleteNote)
 

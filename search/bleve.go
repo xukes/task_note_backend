@@ -10,6 +10,7 @@ import (
 )
 
 var index bleve.Index
+var noteIndex bleve.Index
 
 func Init() {
 	mapping := bleve.NewIndexMapping()
@@ -23,12 +24,30 @@ func Init() {
 	} else if err != nil {
 		log.Fatal(err)
 	}
+
+	// Initialize Note Index
+	noteIndex, err = bleve.Open("note_index.bleve")
+	if err == bleve.ErrorIndexPathDoesNotExist {
+		noteIndex, err = bleve.New("note_index.bleve", mapping)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else if err != nil {
+		log.Fatal(err)
+	}
 }
 
 type TaskIndex struct {
 	ID      uint   `json:"id"`
 	Title   string `json:"title"`
 	Content string `json:"content"`
+	UserID  string `json:"user_id"`
+}
+
+type NoteIndex struct {
+	ID      uint   `json:"id"`
+	Content string `json:"content"`
+	Label   string `json:"label"`
 	UserID  string `json:"user_id"`
 }
 
@@ -55,6 +74,24 @@ func IndexTask(task models.Task) {
 	}
 }
 
+func IndexNote(note models.Note) {
+	if noteIndex == nil {
+		return
+	}
+
+	doc := NoteIndex{
+		ID:      note.ID,
+		Content: note.Content,
+		Label:   note.Label,
+		UserID:  strconv.Itoa(int(note.UserID)),
+	}
+
+	err := noteIndex.Index(strconv.Itoa(int(note.ID)), doc)
+	if err != nil {
+		log.Printf("Error indexing note %d: %v", note.ID, err)
+	}
+}
+
 func DeleteTask(taskId uint) {
 	if index == nil {
 		return
@@ -65,11 +102,31 @@ func DeleteTask(taskId uint) {
 	}
 }
 
+func DeleteNoteIndex(noteId uint) {
+	if noteIndex == nil {
+		return
+	}
+	err := noteIndex.Delete(strconv.Itoa(int(noteId)))
+	if err != nil {
+		log.Printf("Error deleting note %d from index: %v", noteId, err)
+	}
+}
+
 func SearchTasks(queryStr string, userId uint) ([]SearchResult, error) {
 	if index == nil {
 		return nil, fmt.Errorf("index not initialized")
 	}
+	return searchIndex(index, queryStr, userId)
+}
 
+func SearchNotes(queryStr string, userId uint) ([]SearchResult, error) {
+	if noteIndex == nil {
+		return nil, fmt.Errorf("note index not initialized")
+	}
+	return searchIndex(noteIndex, queryStr, userId)
+}
+
+func searchIndex(idx bleve.Index, queryStr string, userId uint) ([]SearchResult, error) {
 	// Filter by UserID
 	userQuery := bleve.NewTermQuery(strconv.Itoa(int(userId)))
 	userQuery.SetField("user_id")
@@ -81,10 +138,10 @@ func SearchTasks(queryStr string, userId uint) ([]SearchResult, error) {
 	conjunctionQuery := bleve.NewConjunctionQuery(userQuery, matchQuery)
 
 	searchRequest := bleve.NewSearchRequest(conjunctionQuery)
-	searchRequest.Size = 10
+	searchRequest.Size = 20 // Increased size
 	searchRequest.Highlight = bleve.NewHighlight()
 
-	searchResults, err := index.Search(searchRequest)
+	searchResults, err := idx.Search(searchRequest)
 	if err != nil {
 		return nil, err
 	}

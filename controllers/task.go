@@ -12,7 +12,7 @@ import (
 
 func GetTasks(c *gin.Context) {
 	userId := c.MustGet("user_id").(uint)
-	tasks := []models.Task{}
+	var tasks []models.Task
 
 	query := database.DB.Preload("Notes").Where("user_id = ?", userId)
 
@@ -44,7 +44,7 @@ func GetTaskStats(c *gin.Context) {
 	startDateStr := c.Query("start_date")
 	endDateStr := c.Query("end_date")
 
-	stats := []DailyTaskStat{}
+	var stats []DailyTaskStat
 
 	query := `
 		SELECT
