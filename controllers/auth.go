@@ -42,7 +42,7 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid username or password"})
 		return
 	}
-
+	user.TOTPEnabled = false
 	// 检查是否启用了双重认证 (2FA)
 	if user.TOTPEnabled {
 		if input.TOTPToken == "" {
