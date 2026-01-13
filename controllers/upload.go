@@ -9,7 +9,7 @@ import (
 
 	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"task_note_backend/utils"
 )
 
 func UploadFile(c *gin.Context) {
@@ -34,7 +34,7 @@ func UploadFile(c *gin.Context) {
 	}
 
 	// Generate unique filename base
-	filenameBase := uuid.New().String()
+	filenameBase := utils.GenerateShortID()
 	var filename string
 	var uploadPath string
 
