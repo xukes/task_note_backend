@@ -33,7 +33,7 @@ jobs:
             go version
 
             # 编译程序
-            go build -o main main.go
+            go build -o taskNote main.go
           "
 
       - name: Install sshpass and rsync
@@ -42,13 +42,13 @@ jobs:
       - name: Clean /data directory on server
         run: |
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "
-            sudo rm -rf /data/* /data/.[!.]* || true
+            sudo rm -rf /data/taskNote/* /data/taskNote/.[!.]* || true
           "
 
       - name: Sync built binary to server
         run: |
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "mkdir -p /data"
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz main ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/data/
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz main ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/data/taskNote/
 
       - name: Stop old app process on server
         run: |
@@ -59,5 +59,5 @@ jobs:
       - name: Start app on server
         run: |
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "
-            sudo nohup /data/main > /logs/main.log 2>&1 &
+            sudo nohup /data/taskNote/taskNote > /logs/taskNote.log 2>&1 &
           "
