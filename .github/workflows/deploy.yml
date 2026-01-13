@@ -48,12 +48,12 @@ jobs:
       - name: Sync built binary to server
         run: |
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "mkdir -p /data"
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz main ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/data/taskNote/
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" rsync -avz taskNote ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/data/taskNote/
 
       - name: Stop old app process on server
         run: |
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "
-            sudo pkill -9 main || true
+            sudo pkill -9 taskNote || true
           "
 
       - name: Start app on server
