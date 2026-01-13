@@ -98,6 +98,7 @@ func UploadFile(c *gin.Context) {
 	}
 
 	// Return public URL
-	url := fmt.Sprintf("http://8.152.101.46:8099/uploads/%s", filename)
+	// url := fmt.Sprintf("http://8.152.101.46:8099/uploads/%s", filename)
+	url := fmt.Sprintf("__HOST__/uploads/%s", filename)
 	c.JSON(http.StatusOK, gin.H{"url": url})
 }

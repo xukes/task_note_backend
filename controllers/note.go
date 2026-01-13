@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 	"task_note_backend/database"
 	"task_note_backend/models"
 	"task_note_backend/search"
@@ -52,6 +53,7 @@ func CreateNote(c *gin.Context) {
 		go search.IndexNote(input)
 	}
 
+	input.Content = processNoteContent(input.Content, c)
 	c.JSON(http.StatusOK, input)
 }
 
@@ -74,6 +76,10 @@ func GetNotes(c *gin.Context) {
 	if err := query.Order("sort desc, created_at desc").Find(&notes).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	for i := range notes {
+		notes[i].Content = processNoteContent(notes[i].Content, c)
 	}
 
 	c.JSON(http.StatusOK, notes)
@@ -133,6 +139,7 @@ func UpdateNote(c *gin.Context) {
 		go search.IndexNote(note)
 	}
 
+	note.Content = processNoteContent(note.Content, c)
 	c.JSON(http.StatusOK, note)
 }
 
@@ -223,9 +230,20 @@ func SearchNotes(c *gin.Context) {
 	var orderedNotes []models.Note
 	for _, id := range ids {
 		if n, ok := noteMap[id]; ok {
+			n.Content = processNoteContent(n.Content, c)
 			orderedNotes = append(orderedNotes, n)
 		}
 	}
 
 	c.JSON(http.StatusOK, orderedNotes)
+}
+
+func processNoteContent(content string, c *gin.Context) string {
+	scheme := "http"
+	if c.Request.TLS != nil || c.Request.Header.Get("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	host := c.Request.Host
+	baseURL := scheme + "://" + host
+	return strings.ReplaceAll(content, "__HOST__", baseURL)
 }

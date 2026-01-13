@@ -47,6 +47,9 @@ func SearchTasks(c *gin.Context) {
 	// Reorder tasks
 	taskMap := make(map[uint]models.Task)
 	for _, t := range tasks {
+		for j := range t.Notes {
+			t.Notes[j].Content = processNoteContent(t.Notes[j].Content, c)
+		}
 		taskMap[t.ID] = t
 	}
 

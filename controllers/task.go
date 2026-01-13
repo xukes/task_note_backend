@@ -30,6 +30,13 @@ func GetTasks(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	for i := range tasks {
+		for j := range tasks[i].Notes {
+			tasks[i].Notes[j].Content = processNoteContent(tasks[i].Notes[j].Content, c)
+		}
+	}
+
 	c.JSON(http.StatusOK, tasks)
 }
 
